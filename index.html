@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printable Hitster QR Cards</title>
+    <style>
+        /* Essential for standard printing */
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* UI elements that won't print */
+        .no-print {
+            background: #1DB954;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .no-print:hover { background: #1ed760; }
+
+        /* The Printable Sheet */
+        .sheet {
+            background: white;
+            width: 190mm; /* Account for margins */
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 Columns */
+            grid-template-rows: repeat(6, 1fr);    /* 6 Rows */
+            gap: 2mm;
+            padding: 5mm;
+        }
+
+        /* Card Styling */
+        .card {
+            border: 1px solid #eee;
+            aspect-ratio: 1 / 1.3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .qr-img {
+            width: 85%;
+            height: auto;
+            image-rendering: pixelated;
+        }
+
+        .card-footer {
+            margin-top: 8px;
+            font-size: 10px;
+            color: #888;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Hide everything else when printing */
+        @media print {
+            body { background: white; padding: 0; }
+            .no-print { display: none; }
+            .sheet { box-shadow: none; padding: 0; margin: 0; }
+            .card { border: 1px solid #ddd; } /* Light border for cutting */
+        }
+    </style>
+</head>
+<body>
+
+    <button class="no-print" onclick="window.print()">Print Cards</button>
+
+    <div class="sheet" id="sheet">
+        </div>
+
+    <script>
+        // PASTE YOUR 24 LINKS HERE
+        const musicLinks = [
+            "https://open.spotify.com/track/4u7EnebtmSfc1uPSTE11oZ", // Card 1
+            "https://open.spotify.com/track/2plbrSXY9vAFpwp9zd696B", // Card 2
+            "https://open.spotify.com/track/6U88Tz9vXvT9T4Xy",       // Card 3...
+            // Fill the rest with placeholders for this example
+            "Link 4", "Link 5", "Link 6", "Link 7", "Link 8",
+            "Link 9", "Link 10", "Link 11", "Link 12", "Link 13",
+            "Link 14", "Link 15", "Link 16", "Link 17", "Link 18",
+            "Link 19", "Link 20", "Link 21", "Link 22", "Link 23", "Link 24"
+        ];
+
+        const sheet = document.getElementById('sheet');
+
+        musicLinks.forEach((link, index) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            // Encode the link for the QR API
+            const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+            
+            card.innerHTML = `
+                <img src="${qrSrc}" class="qr-img" alt="QR Code">
+                <div class="card-footer">Music Card #${index + 1}</div>
+            `;
+            
+            sheet.appendChild(card);
+        });
+    </script>
+</body>
+</html>
