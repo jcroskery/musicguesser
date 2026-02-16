@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hitster Studio: Justus Edition</title>
+    <style>
+        :root { --spotify-green: #1DB954; --bg: #121212; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: white; }
+        
+        .sidebar { width: 380px; background: #000; padding: 25px; display: flex; flex-direction: column; border-right: 1px solid #333; z-index: 10; }
+        input, textarea { background: #282828; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 10px; font-family: inherit; outline: none; }
+        input:focus, textarea:focus { border-color: var(--spotify-green); }
+        textarea { flex-grow: 1; resize: none; font-family: monospace; }
+        
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; background: var(--spotify-green); color: black; transition: 0.2s; }
+        .btn:hover { background: #1ed760; transform: scale(1.02); }
+        
+        .preview-area { flex-grow: 1; padding: 20px; overflow-y: auto; background: #222; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+        .sheet-label { color: #888; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
+
+        /* Printable Sheets (4x5 Square Grid) */
+        .sheet { 
+            background: white; color: black; width: 210mm; height: 297mm; 
+            padding: 10mm 15mm; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(5, 1fr);
+            box-sizing: border-box; page-break-after: always;
+        }
+
+        .card { border: 0.2pt solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 1/1; text-align: center; padding: 10px; box-sizing: border-box; }
+        .card img { width: 85%; height: auto; }
+        .card-id { font-size: 8px; color: #bbb; margin-top: 4px; }
+
+        @media print {
+            body { background: white; }
+            .sidebar, .sheet-label { display: none; }
+            .preview-area { padding: 0; display: block; background: white; }
+            .sheet { box-shadow: none; margin: 0; border: none; }
+            .card { border: 0.2pt solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2 style="color:var(--spotify-green)">Justus Studio</h2>
+    
+    <label style="font-size: 11px; color: #888;">GITHUB URL:</label>
+    <input type="text" id="baseUrl" value="https://jcroskery.github.io/musicguesser/">
+    
+    <label style="font-size: 11px; color: #888;">SPOTIFY LINKS (20 MAX):</label>
+    <textarea id="linkInput" placeholder="Paste Spotify links here..."></textarea>
+    
+    <button class="btn" onclick="window.print()">Print Cards</button>
+    <div id="counter" style="margin-top:15px; font-size: 12px; color: #555; text-align: center;">0 / 20 Cards</div>
+</div>
+
+<div class="preview-area">
+    <div class="sheet-label">Page 1: Fronts (Custom Redirect QR)</div>
+    <div class="sheet" id="frontSheet"></div>
+    
+    <div class="sheet-label">Page 2: Backs (Mirrored Info)</div>
+    <div class="sheet" id="backSheet"></div>
+</div>
+
+<script>
+    const input = document.getElementById('linkInput');
+    const baseUrlInput = document.getElementById('baseUrl');
+    const frontSheet = document.getElementById('frontSheet');
+    const backSheet = document.getElementById('backSheet');
+    const counter = document.getElementById('counter');
+
+    [input, baseUrlInput].forEach(el => el.addEventListener('input', render));
+
+    function render() {
+        let baseUrl = baseUrlInput.value.trim();
+        // Ensure URL ends with a slash for the query param
+        if(baseUrl && !baseUrl.endsWith('/')) baseUrl += '/';
+        
+        const lines = input.value.split('\n').map(l => l.trim()).filter(l => l.length > 0).slice(0, 20);
+        frontSheet.innerHTML = '';
+        backSheet.innerHTML = '';
+        counter.innerText = `${lines.length} / 20 Cards`;
+
+        lines.forEach((link, i) => {
+            // Logic to handle URLs, URIs, and shared links
+            let trackId = "error";
+            if (link.includes('track/')) {
+                trackId = link.split('track/')[1].split('?')[0];
+            } else if (link.includes('track:')) {
+                trackId = link.split('track:')[1];
+            } else {
+                trackId = link; // Fallback if user just pastes the ID
+            }
+            
+            const redirectUrl = `${baseUrl}?id=${trackId}`;
+            
+            // Create Front
+            const cardF = document.createElement('div');
+            cardF.className = 'card';
+            const qr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(redirectUrl)}`;
+            cardF.innerHTML = `<img src="${qr}"><div class="card-id">#${i+1}</div>`;
+            frontSheet.appendChild(cardF);
+        });
+
+        // Mirror Backs for Duplex Alignment (4 columns per row)
+        for (let row = 0; row < 5; row++) {
+            const rowData = lines.slice(row * 4, (row * 4) + 4).reverse();
+            rowData.forEach(() => {
+                const cardB = document.createElement('div');
+                cardB.className = 'card';
+                cardB.innerHTML = `
+                    <div style="font-weight:bold; font-size: 11px;">DUMMY ARTIST</div>
+                    <div style="font-size: 10px; color: #444;">Sample Title</div>
+                    <div style="font-size:28px; font-weight:900; color:#1DB954; margin-top: 5px;">1999</div>
+                `;
+                backSheet.appendChild(cardB);
+            });
+        }
+    }
+
+    // Run once on load to show empty grid or existing data
+    render();
+</script>
+</body>
+</html>
