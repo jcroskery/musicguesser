@@ -1,44 +1,297 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Get Ready...</title>
+    <meta charset="UTF-8">
+    <title>Justus Studio: CSV Spotify Version</title>
     <style>
-        body { background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        #timer { font-size: 120px; font-weight: 900; color: #1DB954; transition: transform 0.2s; }
-        .msg { font-size: 18px; color: #888; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
+        .file-input-container {
+            margin-bottom: 20px;
+            border: 2px dashed #444;
+            border-radius: 8px;
+            text-align: center;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .file-input-container:hover {
+            border-color: var(--spotify-green);
+            background: #1a1a1a;
+        }
+
+        /* This makes the label fill the whole box */
+        .custom-file-upload {
+            display: block; /* Important: fills the container */
+            padding: 20px;  /* Moves the padding here so the whole area is clickable */
+            cursor: pointer;
+            color: var(--spotify-green);
+            font-weight: bold;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        :root { --spotify-green: #1DB954; --bg: #121212; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); color: white; }
+        
+        /* Sidebar */
+        .sidebar { width: 380px; background: #000; padding: 25px; display: flex; flex-direction: column; border-right: 1px solid #333; z-index: 10; }
+        .file-input-container { margin-bottom: 20px; padding: 15px; border: 2px dashed #444; border-radius: 8px; text-align: center; }
+        .file-input-container:hover { border-color: var(--spotify-green); }
+        input[type="file"] { display: none; }
+        .custom-file-upload { cursor: pointer; color: var(--spotify-green); font-weight: bold; }
+        
+        textarea { flex-grow: 1; background: #282828; color: #fff; border: 1px solid #444; border-radius: 8px; padding: 15px; font-family: monospace; font-size: 11px; outline: none; resize: none; margin-top: 10px; }
+        
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; background: var(--spotify-green); color: black; margin-top: 20px; transition: 0.2s; }
+        .btn:hover { background: #1ed760; transform: scale(1.02); }
+        
+        /* Preview Area */
+        .preview-area { flex-grow: 1; padding: 20px; overflow-y: auto; background: #222; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+        .sheet-label { color: #888; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; font-size: 12px; }
+
+        /* 20 SQUARE CARDS (4x5) */
+        .sheet { 
+            background: white; color: black; 
+            width: 200mm; height: 265mm; 
+            padding: 5mm; display: grid; 
+            grid-template-columns: repeat(4, 1fr); 
+            grid-template-rows: repeat(5, 1fr);
+            box-sizing: border-box; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            page-break-after: always;
+        }
+
+        .card { 
+            border: 0.1pt solid #ddd; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            aspect-ratio: 1/1; text-align: center; padding: 12px; box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .card img { width: 85%; height: auto; }
+        .artist { font-weight: 800; font-size: 13px; text-transform: uppercase; line-height: 1.1; margin-bottom: 2px; }
+        .title { font-style: italic; font-weight: 700; font-size: 11px; margin-bottom: 5px; line-height: 1.1; }
+        .year { font-size: 48px; font-weight: 900; color: var(--spotify-green); line-height: 1; margin-bottom: 5px; }
+
+        @media print {
+            @page { margin: 0; size: auto; }
+            body, html { background: white !important; height: auto !important; display: block !important; }
+            .sidebar, .sheet-label { display: none !important; }
+            .preview-area { display: block !important; padding: 0 !important; background: white !important; }
+            .sheet { box-shadow: none !important; margin: 5mm auto !important; border: none !important; }
+        }
+
+        /* Layout spacing */
+        #main-content {
+            margin-left: 320px; /* Space for the 280px sidebar + padding */
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #upload-container {
+            background: #f9f9f9;
+            padding: 30px;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 40px;
+        }
+
+        #upload-container h3 {
+            margin-top: 0;
+            color: #444;
+        }
+
+        .file-hint {
+            font-size: 0.85rem;
+            color: #777;
+            margin-top: 10px;
+        }
+
+        /* Hide everything except the cards when printing */
+        @media print {
+            #side-pane, #upload-container, .file-hint {
+                display: none !important;
+            }
+            
+            #main-content {
+                margin-left: 0;
+                padding: 0;
+            }
+        }
+        #side-pane a {
+            color: #1DB954; /* Spotify Green */
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        /* The color after it has been clicked */
+        #side-pane a:visited {
+            color: #198744; /* A slightly darker green, or keep it the same */
+        }
+
+        /* Optional: change it when hovering */
+        #side-pane a:hover {
+            text-decoration: underline;
+            color: #1ed760; /* Lighter green */
+        }
     </style>
 </head>
 <body>
-    <div class="msg">Song Starting In</div>
-    <div id="timer">3</div>
 
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const trackId = urlParams.get('id');
-        let timeLeft = 3;
-        const display = document.getElementById('timer');
+<div class="sidebar">
+    <h2 style="color:var(--spotify-green); margin-top:0;">Christer</h2>
 
-        if (trackId) {
-            const countdown = setInterval(() => {
-                timeLeft -= 1;
-                display.innerText = timeLeft;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(countdown);
-                    // Redirect to Spotify app
-                    window.location.href = `spotify:track:${trackId}`;
-                    
-                    // Fallback for desktop/browsers if app doesn't trigger
-                    setTimeout(() => {
-                        window.location.href = `https://open.spotify.com/track/${trackId}`;
-                    }, 500);
-                }
-            }, 1000);
-        } else {
-            display.innerText = "!";
-            document.querySelector('.msg').innerText = "No Song ID Found";
-        }
-    </script>
+    <div id="side-pane">
+        <h2>Instructions</h2>
+        <ol class="setup-steps">
+            <li>Sign in to <a href="https://watsonbox.github.io/exportify/" target="_blank">Exportify</a> using Spotify.</li>
+            <li>Download the <strong>CSV</strong> for the desired playlist.</li>
+            <li><strong>Upload</strong> that CSV to this tool.</li>
+            <li>Print <strong>double-sided</strong> and cut out the cards.</li>
+        </ol>
+    </div>
+    
+    <div class="file-input-container">
+        <label class="custom-file-upload">
+            <input type="file" id="csvFile" accept=".csv">
+            📁 Upload Exportify CSV
+        </label>
+    </div>
+
+    <label style="font-size: 11px; color: #888;">RAW DATA (Manual override):</label>
+    <textarea id="linkInput" placeholder="Artist | Year | Title | ID"></textarea>
+    
+    <button class="btn" onclick="window.print()">Print Cards</button>
+    <div id="counter" style="margin-top:15px; font-size: 12px; color: #555; text-align: center;">0 / 20 Cards</div>
+</div>
+
+<div class="preview-area" id="output">
+</div>
+
+<script>
+    const fileInput = document.getElementById('csvFile');
+    const textInput = document.getElementById('linkInput');
+    const frontContainer = document.getElementById('frontSheets');
+    const backContainer = document.getElementById('backSheets');
+    const counter = document.getElementById('counter');
+
+    // Handle CSV Upload
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const csvData = event.target.result;
+            processCSV(csvData);
+        };
+        reader.readAsText(file);
+    });
+
+    // Handle Manual Text Change
+    textInput.addEventListener('input', render);
+
+    function processCSV(csvText) {
+        const lines = csvText.split(/\r?\n/);
+        const headers = lines[0].split(',');
+        
+        // Helper to find index by header name
+        const idx = (name) => headers.findIndex(h => h.replace(/"/g, '').trim() === name);
+        
+        const trackNameIdx = idx('Track Name');
+        const artistNameIdx = idx('Artist Name(s)');
+        const releaseDateIdx = idx('Album Release Date');
+        const trackUriIdx = idx('Track URI');
+
+        const formattedLines = lines.slice(1).map(line => {
+            // Simple CSV split (Note: doesn't handle commas inside quotes, but works for most Exportify files)
+            const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
+            if (cols.length < 2) return null;
+
+            const artist = cols[artistNameIdx]?.replace(/"/g, '') || 'Unknown';
+            const title = cols[trackNameIdx]?.replace(/"/g, '') || 'Unknown';
+            const releaseDate = cols[releaseDateIdx]?.replace(/"/g, '') || '0000';
+            const year = releaseDate.split('-')[0];
+            const uri = cols[trackUriIdx]?.replace(/"/g, '') || '';
+            const id = uri.split(':').pop();
+
+            return `${artist} | ${year} | ${title} | ${id}`;
+        }).filter(l => l !== null);
+
+        textInput.value = formattedLines.join('\n');
+        render();
+    }
+
+    function render() {
+    const output = document.getElementById('output');
+    const allData = textInput.value.split('\n')
+        .map(l => l.trim())
+        .filter(l => l.includes('|'))
+        .map(line => {
+            const parts = line.split('|').map(s => s.trim());
+            return { artist: parts[0], year: parts[1], title: parts[2], id: parts[3] };
+        });
+
+    output.innerHTML = ''; // Clear everything
+    counter.innerText = `${allData.length} Total Cards`;
+
+    // Process in chunks of 20
+    for (let i = 0; i < allData.length; i += 20) {
+        const chunk = allData.slice(i, i + 20);
+        const sheetNumber = (i / 20) + 1;
+        renderSheetPair(chunk, sheetNumber, output);
+    }
+}
+
+function renderSheetPair(chunk, sheetNum, container) {
+    // --- CREATE FRONT SHEET ---
+    const frontLabel = document.createElement('div');
+    frontLabel.className = 'sheet-label';
+    frontLabel.innerText = `Sheet ${sheetNum}: Front (QR Codes)`;
+    container.appendChild(frontLabel);
+
+    const frontSheet = document.createElement('div');
+    frontSheet.className = 'sheet';
+    
+    chunk.forEach(data => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const spotifyUri = `spotify:track:${data.id}`;
+        const qr = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(spotifyUri)}`;
+        card.innerHTML = `<img src="${qr}">`;
+        frontSheet.appendChild(card);
+    });
+    container.appendChild(frontSheet);
+
+    // --- CREATE BACK SHEET ---
+    const backLabel = document.createElement('div');
+    backLabel.className = 'sheet-label';
+    backLabel.innerText = `Sheet ${sheetNum}: Back (Song Info)`;
+    container.appendChild(backLabel);
+
+    const backSheet = document.createElement('div');
+    backSheet.className = 'sheet';
+
+    // Mirror logic for duplex alignment (Reverse each row of 4)
+    for (let row = 0; row < 5; row++) {
+        const rowData = chunk.slice(row * 4, (row * 4) + 4).reverse();
+        rowData.forEach(data => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="artist">${data.artist}</div>
+                <div class="year">${data.year}</div>
+                <div class="title">"${data.title}"</div>
+            `;
+            backSheet.appendChild(card);
+        });
+    }
+    container.appendChild(backSheet);
+}
+
+    render();
+</script>
 </body>
 </html>
